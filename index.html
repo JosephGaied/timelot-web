@@ -515,10 +515,12 @@
       just one email when the doors open.
     </p>
 
-    <form class="capture-form" id="captureForm" onsubmit="handleSubmit(event)">
+    <form class="capture-form" id="captureForm" onsubmit="handleSubmit(event)" action="https://formspree.io/f/maqajdeg" method="POST">
+      <input type="hidden" name="form_source" value="hero">
       <input
         type="email"
         id="emailInput"
+        name="email"
         placeholder="your@email.com"
         autocomplete="email"
         required
@@ -612,10 +614,12 @@
       Join the early access list. One email when the doors open. Nothing else.
     </p>
 
-    <form class="capture-form" id="captureForm2" onsubmit="handleSubmit2(event)">
+    <form class="capture-form" id="captureForm2" onsubmit="handleSubmit2(event)" action="https://formspree.io/f/maqajdeg" method="POST">
+      <input type="hidden" name="form_source" value="bottom">
       <input
         type="email"
         id="emailInput2"
+        name="email"
         placeholder="your@email.com"
         autocomplete="email"
         required
@@ -641,35 +645,84 @@
   </footer>
 
   <script>
-    function handleSubmit(e) {
+    const FORMSPREE = 'https://formspree.io/f/maqajdeg';
+    const STORAGE_KEY = 'timelot_waitlist_email';
+
+    function alreadySignedUp(email) {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored && stored.toLowerCase() === email.toLowerCase();
+    }
+
+    function markSignedUp(email) {
+      localStorage.setItem(STORAGE_KEY, email.toLowerCase());
+    }
+
+    async function submitEmail(email, source) {
+      try {
+        const res = await fetch(FORMSPREE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ email, source })
+        });
+        return res.ok;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function showAlreadySignedUp(formId, noteId, successId) {
+      document.getElementById(formId).style.display = 'none';
+      document.getElementById(noteId).style.display = 'none';
+      const el = document.getElementById(successId);
+      el.querySelector('.success-text').textContent = "You're already on the list.";
+      el.querySelector('.success-sub').textContent = "We have your email. We'll be in touch when TimeLot launches.";
+      el.classList.add('visible');
+    }
+
+    async function handleSubmit(e) {
       e.preventDefault();
       const email = document.getElementById('emailInput').value.trim();
       if (!email) return;
-
-      // Log to console for now — replace with API endpoint when backend is ready
-      console.log('Early access signup:', email);
-
-      // Store locally so we can collect them
-      const signups = JSON.parse(localStorage.getItem('timelot_signups') || '[]');
-      signups.push({ email, timestamp: new Date().toISOString() });
-      localStorage.setItem('timelot_signups', JSON.stringify(signups));
-
-      // Show success state
-      document.getElementById('captureForm').style.display = 'none';
-      document.getElementById('captureNote').style.display = 'none';
-      document.getElementById('successMsg').classList.add('visible');
+      if (alreadySignedUp(email)) {
+        showAlreadySignedUp('captureForm', 'captureNote', 'successMsg');
+        return;
+      }
+      const btn = e.target.querySelector('button');
+      btn.textContent = 'Sending...';
+      btn.disabled = true;
+      const ok = await submitEmail(email, 'hero');
+      if (ok) {
+        markSignedUp(email);
+        document.getElementById('captureForm').style.display = 'none';
+        document.getElementById('captureNote').style.display = 'none';
+        document.getElementById('successMsg').classList.add('visible');
+      } else {
+        btn.textContent = 'Try Again';
+        btn.disabled = false;
+      }
     }
-    function handleSubmit2(e) {
+
+    async function handleSubmit2(e) {
       e.preventDefault();
       const email = document.getElementById('emailInput2').value.trim();
       if (!email) return;
-      console.log('Early access signup:', email);
-      const signups = JSON.parse(localStorage.getItem('timelot_signups') || '[]');
-      signups.push({ email, timestamp: new Date().toISOString() });
-      localStorage.setItem('timelot_signups', JSON.stringify(signups));
-      document.getElementById('captureForm2').style.display = 'none';
-      document.getElementById('captureNote2').style.display = 'none';
-      document.getElementById('successMsg2').classList.add('visible');
+      if (alreadySignedUp(email)) {
+        showAlreadySignedUp('captureForm2', 'captureNote2', 'successMsg2');
+        return;
+      }
+      const btn = e.target.querySelector('button');
+      btn.textContent = 'Sending...';
+      btn.disabled = true;
+      const ok = await submitEmail(email, 'bottom');
+      if (ok) {
+        markSignedUp(email);
+        document.getElementById('captureForm2').style.display = 'none';
+        document.getElementById('captureNote2').style.display = 'none';
+        document.getElementById('successMsg2').classList.add('visible');
+      } else {
+        btn.textContent = 'Try Again';
+        btn.disabled = false;
+      }
     }
   </script>
 
