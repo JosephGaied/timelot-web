@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="TimeLot — Priority-driven time allocation for people who take their time seriously. Coming soon." />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>TimeLot™ — Your time, intelligently allotted.</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0a0a0a;
+      --surface:    #111111;
+      --border:     #1e1e1e;
+      --accent:     #c8b97a;
+      --accent-dim: #8a7d52;
+      --text:       #e8e4dc;
+      --text-muted: #6b6760;
+      --text-dim:   #3a3835;
+      --white:      #ffffff;
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-mono:  'DM Mono', 'Courier New', monospace;
+      --font-sans:  'DM Sans', sans-serif;
+      --max-w:      1100px;
+      --ease:       cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-weight: 300;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Grid texture overlay ─────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Nav ──────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 3rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,10,10,0.85);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-logo {
+      font-family: var(--font-serif);
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.02em;
+      text-decoration: none;
+    }
+
+    .nav-logo span {
+      color: var(--accent);
+    }
+
+    .nav-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 400;
+      color: var(--accent-dim);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border: 1px solid var(--accent-dim);
+      padding: 0.25rem 0.6rem;
+      border-radius: 2px;
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 4rem;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: var(--accent);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease) 0.2s forwards;
+    }
+
+    .hero-statement {
+      font-family: var(--font-serif);
+      font-size: clamp(2.8rem, 7vw, 6.5rem);
+      font-weight: 300;
+      line-height: 1.08;
+      color: var(--white);
+      max-width: 900px;
+      letter-spacing: -0.01em;
+      opacity: 0;
+      animation: fadeUp 1s var(--ease) 0.4s forwards;
+    }
+
+    .hero-statement em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero-divider {
+      width: 1px;
+      height: 60px;
+      background: linear-gradient(to bottom, var(--accent), transparent);
+      margin: 3rem auto;
+      opacity: 0;
+      animation: fadeIn 0.8s var(--ease) 0.8s forwards;
+    }
+
+    .hero-sub {
+      font-family: var(--font-sans);
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      font-weight: 300;
+      color: var(--text-muted);
+      max-width: 560px;
+      line-height: 1.7;
+      opacity: 0;
+      animation: fadeUp 0.8s var(--ease) 1s forwards;
+    }
+
+    .hero-sub strong {
+      color: var(--text);
+      font-weight: 400;
+    }
+
+    /* ── Formula strip ────────────────────────────────────────── */
+    .formula-strip {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      overflow: hidden;
+      padding: 1rem 0;
+      margin: 0;
+      opacity: 0;
+      animation: fadeIn 1s var(--ease) 1.4s forwards;
+    }
+
+    .formula-inner {
+      display: flex;
+      align-items: center;
+      gap: 3rem;
+      width: max-content;
+      animation: scroll 30s linear infinite;
+      padding: 0 2rem;
+    }
+
+    .formula-inner:hover { animation-play-state: paused; }
+
+    @keyframes scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .formula-item {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 300;
+      color: var(--text-dim);
+      white-space: nowrap;
+      letter-spacing: 0.05em;
+    }
+
+    .formula-item.highlight {
+      color: var(--accent-dim);
+    }
+
+    /* ── Email capture ────────────────────────────────────────── */
+    .capture-section {
+      position: relative;
+      z-index: 1;
+      padding: 6rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .capture-label {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 400;
+      color: var(--accent-dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .capture-headline {
+      font-family: var(--font-serif);
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 300;
+      color: var(--white);
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
+    }
+
+    .capture-sub {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+      max-width: 420px;
+    }
+
+    .capture-form {
+      display: flex;
+      gap: 0;
+      width: 100%;
+      max-width: 480px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      transition: border-color 0.3s var(--ease);
+    }
+
+    .capture-form:focus-within {
+      border-color: var(--accent);
+    }
+
+    .capture-form input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      font-weight: 300;
+      padding: 1rem 1.25rem;
+    }
+
+    .capture-form input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .capture-form button {
+      background: var(--accent);
+      border: none;
+      color: var(--bg);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s var(--ease);
+    }
+
+    .capture-form button:hover {
+      background: var(--white);
+    }
+
+    .capture-note {
+      margin-top: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Success state ────────────────────────────────────────── */
+    .success-msg {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .success-msg.visible {
+      display: flex;
+    }
+
+    .success-check {
+      font-size: 2rem;
+      color: var(--accent);
+    }
+
+    .success-text {
+      font-family: var(--font-serif);
+      font-size: 1.4rem;
+      font-weight: 300;
+      color: var(--white);
+    }
+
+    .success-sub {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+    }
+
+    /* ── Differentiators ──────────────────────────────────────── */
+    .diff-section {
+      position: relative;
+      z-index: 1;
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 4rem 2rem 8rem;
+    }
+
+    .diff-label {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--accent-dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .diff-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .diff-item {
+      background: var(--bg);
+      padding: 2.5rem;
+      transition: background 0.3s var(--ease);
+    }
+
+    .diff-item:hover {
+      background: var(--surface);
+    }
+
+    .diff-num {
+      font-family: var(--font-serif);
+      font-size: 2.2rem;
+      font-style: italic;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+      display: block;
+      line-height: 1;
+      opacity: 0.9;
+    }
+
+    .diff-title {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      font-weight: 400;
+      color: var(--white);
+      margin-bottom: 0.75rem;
+      line-height: 1.3;
+    }
+
+    .diff-body {
+      font-size: 0.875rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* ── Footer ───────────────────────────────────────────────── */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 2rem 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-left {
+      font-family: var(--font-serif);
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+
+    .footer-left span { color: var(--accent); }
+
+    .footer-right {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    /* ── Animations ───────────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* ── Responsive ───────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      nav { padding: 1.25rem 1.5rem; }
+      footer { padding: 1.5rem; flex-direction: column; text-align: center; }
+      .capture-form { flex-direction: column; }
+      .capture-form button { width: 100%; }
+      .diff-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <a class="nav-logo" href="#">Time<span>Lot</span>™</a>
+    <span class="nav-badge">Early Access</span>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <p class="hero-eyebrow">HPS Engineering &nbsp;·&nbsp; Coming Soon</p>
+
+    <h1 class="hero-statement">
+      There is one resource.<br />
+      It is <em>you.</em><br />
+      And it has exactly 24 hours per day.
+    </h1>
+
+    <div class="hero-divider"></div>
+
+    <p class="hero-sub">
+      <strong>TimeLot</strong> is a priority-driven scheduling engine that
+      mathematically ranks everything competing for your time —
+      then books it, in order, with your approval.
+      No guessing. No guilt. No missed deadlines.
+    </p>
+  </section>
+
+  <!-- Scroll strip -->
+  <div class="formula-strip" aria-hidden="true">
+    <div class="formula-inner">
+      <!-- First copy -->
+      <span class="formula-item highlight">TimeLot™</span>
+      <span class="formula-item">Priority-driven time allocation</span>
+      <span class="formula-item highlight">Your time, intelligently allotted.</span>
+      <span class="formula-item">iOS &amp; Android</span>
+      <span class="formula-item">Google Calendar + Outlook</span>
+      <span class="formula-item highlight">Confirmation loop — always</span>
+      <span class="formula-item">Whole-life scheduling</span>
+      <span class="formula-item">Built by an engineer</span>
+      <span class="formula-item highlight">HPS Engineering</span>
+      <span class="formula-item">Coming Soon</span>
+      <!-- Duplicate for seamless loop -->
+      <span class="formula-item highlight">TimeLot™</span>
+      <span class="formula-item">Priority-driven time allocation</span>
+      <span class="formula-item highlight">Your time, intelligently allotted.</span>
+      <span class="formula-item">iOS &amp; Android</span>
+      <span class="formula-item">Google Calendar + Outlook</span>
+      <span class="formula-item highlight">Confirmation loop — always</span>
+      <span class="formula-item">Whole-life scheduling</span>
+      <span class="formula-item">Built by an engineer</span>
+      <span class="formula-item highlight">HPS Engineering</span>
+      <span class="formula-item">Coming Soon</span>
+    </div>
+  </div>
+
+  <!-- Email capture -->
+  <section class="capture-section">
+    <p class="capture-label">Reserve your spot</p>
+    <h2 class="capture-headline">Be first when TimeLot launches.</h2>
+    <p class="capture-sub">
+      Join the early access list. No spam —
+      just one email when the doors open.
+    </p>
+
+    <form class="capture-form" id="captureForm" onsubmit="handleSubmit(event)">
+      <input
+        type="email"
+        id="emailInput"
+        placeholder="your@email.com"
+        autocomplete="email"
+        required
+      />
+      <button type="submit">Request Access</button>
+    </form>
+
+    <div class="success-msg" id="successMsg">
+      <span class="success-check">✦</span>
+      <p class="success-text">You're on the list.</p>
+      <p class="success-sub">We'll reach out when TimeLot is ready for you.</p>
+    </div>
+
+    <p class="capture-note" id="captureNote">
+      Your time is yours. We respect that.
+    </p>
+  </section>
+
+  <!-- Differentiators -->
+  <section class="diff-section">
+    <p class="diff-label">What makes TimeLot different</p>
+    <div class="diff-grid">
+
+      <div class="diff-item">
+        <span class="diff-num">01 —</span>
+        <h3 class="diff-title">A formula, not a feeling</h3>
+        <p class="diff-body">
+          Every activity gets a priority score computed from importance,
+          deadline, duration, flexibility, and how much is already done.
+          You see the number. You understand why.
+        </p>
+      </div>
+
+      <div class="diff-item">
+        <span class="diff-num">02 —</span>
+        <h3 class="diff-title">Nothing moves without your approval</h3>
+        <p class="diff-body">
+          TimeLot proposes. You confirm. No silent calendar rewrites,
+          no surprises. You stay in control of every committed hour.
+        </p>
+      </div>
+
+      <div class="diff-item">
+        <span class="diff-num">03 —</span>
+        <h3 class="diff-title">Built for your whole life</h3>
+        <p class="diff-body">
+          Work. Family. Personal. Sleep. TimeLot understands that
+          your 24 hours aren't all the same — and schedules accordingly,
+          within the windows that belong to each part of your life.
+        </p>
+      </div>
+
+      <div class="diff-item">
+        <span class="diff-num">04 —</span>
+        <h3 class="diff-title">Completion changes everything</h3>
+        <p class="diff-body">
+          As you make progress, the engine re-ranks in real time.
+          Nearly finished tasks naturally deprioritize.
+          What's urgent surfaces. What's done steps aside.
+        </p>
+      </div>
+
+      <div class="diff-item">
+        <span class="diff-num">05 —</span>
+        <h3 class="diff-title">Your calendar. Your data.</h3>
+        <p class="diff-body">
+          TimeLot connects to Google Calendar and Outlook
+          to read your existing commitments — and write new ones
+          only when you say so. Privacy by design, not afterthought.
+        </p>
+      </div>
+
+      <div class="diff-item">
+        <span class="diff-num">06 —</span>
+        <h3 class="diff-title">Available wherever you are</h3>
+        <p class="diff-body">
+          iPhone. Android. Desktop. Web. One engine,
+          every device. Your priority list is always
+          one tap away — not waiting at your desk.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Second email capture -->
+  <section class="capture-section" style="border-top: 1px solid var(--border);">
+    <p class="capture-label">Still reading? Good.</p>
+    <h2 class="capture-headline">You're exactly who TimeLot is built for.</h2>
+    <p class="capture-sub">
+      Join the early access list. One email when the doors open. Nothing else.
+    </p>
+
+    <form class="capture-form" id="captureForm2" onsubmit="handleSubmit2(event)">
+      <input
+        type="email"
+        id="emailInput2"
+        placeholder="your@email.com"
+        autocomplete="email"
+        required
+      />
+      <button type="submit">Notify Me</button>
+    </form>
+
+    <div class="success-msg" id="successMsg2">
+      <span class="success-check">✦</span>
+      <p class="success-text">You're on the list.</p>
+      <p class="success-sub">We'll reach out when TimeLot is ready for you.</p>
+    </div>
+
+    <p class="capture-note" id="captureNote2">
+      Your time is yours. We respect that.
+    </p>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p class="footer-left">Time<span>Lot</span>™ &nbsp;·&nbsp; HPS Engineering LLC</p>
+    <p class="footer-right">© 2026 High Performing Systems Engineering LLC &nbsp;·&nbsp; St. Louis, MO &nbsp;·&nbsp; All rights reserved</p>
+  </footer>
+
+  <script>
+    function handleSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value.trim();
+      if (!email) return;
+
+      // Log to console for now — replace with API endpoint when backend is ready
+      console.log('Early access signup:', email);
+
+      // Store locally so we can collect them
+      const signups = JSON.parse(localStorage.getItem('timelot_signups') || '[]');
+      signups.push({ email, timestamp: new Date().toISOString() });
+      localStorage.setItem('timelot_signups', JSON.stringify(signups));
+
+      // Show success state
+      document.getElementById('captureForm').style.display = 'none';
+      document.getElementById('captureNote').style.display = 'none';
+      document.getElementById('successMsg').classList.add('visible');
+    }
+    function handleSubmit2(e) {
+      e.preventDefault();
+      const email = document.getElementById('emailInput2').value.trim();
+      if (!email) return;
+      console.log('Early access signup:', email);
+      const signups = JSON.parse(localStorage.getItem('timelot_signups') || '[]');
+      signups.push({ email, timestamp: new Date().toISOString() });
+      localStorage.setItem('timelot_signups', JSON.stringify(signups));
+      document.getElementById('captureForm2').style.display = 'none';
+      document.getElementById('captureNote2').style.display = 'none';
+      document.getElementById('successMsg2').classList.add('visible');
+    }
+  </script>
+
+</body>
+</html>
