@@ -65,6 +65,7 @@ function Dashboard({ token, onLogout }) {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => { fetchActivities(); }, []);
 
   const addActivity = async () => {
