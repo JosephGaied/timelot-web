@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API = 'http://192.168.1.246:3000';
+const API = 'https://api.timelot.app';
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState('');
