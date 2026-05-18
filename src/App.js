@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import PrivacyPolicy from './PrivacyPolicy';
 
 const API = 'https://timelot-api-production.up.railway.app';
 
@@ -36,6 +38,9 @@ function Login({ onLogin }) {
         <button style={styles.button} onClick={handleLogin} disabled={loading}>
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
+        <p style={styles.privacyLink}>
+          <a href="/privacy" style={styles.link}>Privacy Policy</a>
+        </p>
       </div>
     </div>
   );
@@ -185,6 +190,7 @@ function Dashboard({ token, onLogout }) {
             ))
         }
       </div>
+      <p style={styles.footerLink}><a href="/privacy" style={styles.link}>Privacy Policy</a></p>
     </div>
   );
 }
@@ -218,12 +224,25 @@ const styles = {
   activityMeta: { margin: 0, color: '#888', fontSize: '0.82rem' },
   actions: { display: 'flex', gap: '8px' },
   completeBtn: { padding: '8px 12px', backgroundColor: '#1a3a1a', border: '1px solid #2a5a2a', borderRadius: '6px', color: '#7ac87a', cursor: 'pointer', fontSize: '1rem' },
-  deleteBtn: { padding: '8px 12px', backgroundColor: '#3a1a1a', border: '1px solid #5a2a2a', borderRadius: '6px', color: '#c87a7a', cursor: 'pointer', fontSize: '1rem' }
+  deleteBtn: { padding: '8px 12px', backgroundColor: '#3a1a1a', border: '1px solid #5a2a2a', borderRadius: '6px', color: '#c87a7a', cursor: 'pointer', fontSize: '1rem' },
+  privacyLink: { textAlign: 'center', marginTop: '16px' },
+  footerLink: { textAlign: 'center', marginTop: '24px', maxWidth: '800px', margin: '24px auto 0' },
+  link: { color: '#666', fontSize: '0.85rem' },
 };
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('timelot_token') || '');
   const handleLogin = (token) => { localStorage.setItem('timelot_token', token); setToken(token); };
   const handleLogout = () => { localStorage.removeItem('timelot_token'); setToken(''); };
-  return token ? <Dashboard token={token} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />;
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="*" element={
+          token ? <Dashboard token={token} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />
+        } />
+      </Routes>
+    </BrowserRouter>
+  );
 }
