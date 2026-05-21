@@ -1,7 +1,8 @@
+import PrivacyPolicy from './PrivacyPolicy';
+import LandingPage from './LandingPage';
 import React, { useState } from 'react';
 import axios from 'axios';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import PrivacyPolicy from './PrivacyPolicy';
 
 const API = 'https://timelot-api-production.up.railway.app';
 
@@ -234,14 +235,16 @@ export default function App() {
   const [token, setToken] = useState(localStorage.getItem('timelot_token') || '');
   const handleLogin = (token) => { localStorage.setItem('timelot_token', token); setToken(token); };
   const handleLogout = () => { localStorage.removeItem('timelot_token'); setToken(''); };
-
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="*" element={
+        <Route path="/dashboard" element={
           token ? <Dashboard token={token} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />
         } />
+        <Route path="*" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>
   );
