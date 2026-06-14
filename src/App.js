@@ -2,11 +2,12 @@ import PrivacyPolicy from './PrivacyPolicy';
 import LandingPage from './LandingPage';
 import React, { useState } from 'react';
 import axios from 'axios';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 const API = 'https://timelot-api-production.up.railway.app';
 
 function Login({ onLogin }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,6 +19,7 @@ function Login({ onLogin }) {
     try {
       const res = await axios.post(`${API}/auth/login`, { email, password });
       onLogin(res.data.access_token);
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed');
     }
@@ -239,10 +241,10 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+        <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/dashboard" element={
-          token ? <Dashboard token={token} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />
+          token ? <Dashboard token={token} onLogout={handleLogout} /> : <Navigate to="/login" replace />
         } />
         <Route path="*" element={<LandingPage />} />
       </Routes>
