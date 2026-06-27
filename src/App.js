@@ -106,6 +106,7 @@ function Dashboard({ token, onLogout }) {
       setMessage('Google Calendar connection failed. Please try again.');
     }
     if (cal) window.history.replaceState({}, '', '/dashboard'); // clean the URL
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const addActivity = async () => {
