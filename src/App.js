@@ -59,6 +59,7 @@ function Dashboard({ token, onLogout }) {
   const [dueDate, setDueDate] = useState('');
   const [adding, setAdding] = useState(false);
   const [message, setMessage] = useState('');
+  const [calendarConnected, setCalendarConnected] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -73,8 +74,39 @@ function Dashboard({ token, onLogout }) {
     setLoading(false);
   };
 
+  const checkCalendar = async () => {
+    try {
+      const res = await axios.get(`${API}/calendar/status`, { headers });
+      setCalendarConnected(res.data.connected);
+    } catch (err) {
+      // non-fatal; leave as not connected
+    }
+  };
+
+  const connectCalendar = async () => {
+    try {
+      const res = await axios.get(`${API}/auth/google`, { headers });
+      window.location.href = res.data.url;   // hand off to Google's consent screen
+    } catch (err) {
+      setMessage('Could not start Google Calendar connection.');
+    }
+  };
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  React.useEffect(() => { fetchActivities(); }, []);
+  React.useEffect(() => {
+    fetchActivities();
+    checkCalendar();
+    // Handle the return trip from Google's OAuth callback
+    const params = new URLSearchParams(window.location.search);
+    const cal = params.get('calendar');
+    if (cal === 'connected') {
+      setMessage('Google Calendar connected! ✓');
+      setTimeout(() => setMessage(''), 3000);
+    } else if (cal === 'error') {
+      setMessage('Google Calendar connection failed. Please try again.');
+    }
+    if (cal) window.history.replaceState({}, '', '/dashboard'); // clean the URL
+  }, []);
 
   const addActivity = async () => {
     if (!name || !dueDate) { setMessage('Please enter a name and due date.'); return; }
@@ -134,6 +166,22 @@ function Dashboard({ token, onLogout }) {
       </div>
 
       {message && <div style={styles.messageBanner}>{message}</div>}
+
+      <div style={styles.calendarCard}>
+        <div style={styles.calendarRow}>
+          <div>
+            <h3 style={styles.sectionTitlePlain}>Google Calendar</h3>
+            <p style={styles.calendarHint}>
+              {calendarConnected
+                ? 'Connected — TimeLot can read your calendar and propose time blocks.'
+                : 'Connect your calendar so TimeLot can see your committed time.'}
+            </p>
+          </div>
+          {calendarConnected
+            ? <span style={styles.connectedBadge}>✓ Connected</span>
+            : <button style={styles.connectBtn} onClick={connectCalendar}>Connect Google Calendar</button>}
+        </div>
+      </div>
 
       <div style={styles.addCard}>
         <h3 style={styles.sectionTitle}>Add Activity</h3>
@@ -211,6 +259,12 @@ const styles = {
   logoutBtn: { padding: '8px 16px', backgroundColor: 'transparent', border: '1px solid #444', borderRadius: '8px', color: '#888', fontSize: '0.9rem', cursor: 'pointer' },
   error: { color: '#e74c3c', textAlign: 'center' },
   messageBanner: { maxWidth: '800px', margin: '0 auto 16px', padding: '12px', backgroundColor: '#1a3a1a', border: '1px solid #2a5a2a', borderRadius: '8px', color: '#7ac87a', textAlign: 'center' },
+  calendarCard: { maxWidth: '800px', margin: '0 auto 24px', padding: '20px 24px', backgroundColor: '#1a1a2e', borderRadius: '12px' },
+  calendarRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' },
+  sectionTitlePlain: { color: '#c8b97a', margin: '0 0 4px' },
+  calendarHint: { color: '#888', margin: 0, fontSize: '0.85rem' },
+  connectBtn: { padding: '12px 18px', backgroundColor: '#3d2f8f', border: 'none', borderRadius: '8px', color: '#f0ede6', fontSize: '0.95rem', cursor: 'pointer', whiteSpace: 'nowrap' },
+  connectedBadge: { padding: '8px 14px', backgroundColor: '#1a3a1a', border: '1px solid #2a5a2a', borderRadius: '8px', color: '#7ac87a', fontSize: '0.9rem', whiteSpace: 'nowrap' },
   addCard: { maxWidth: '800px', margin: '0 auto 24px', padding: '24px', backgroundColor: '#1a1a2e', borderRadius: '12px' },
   listCard: { maxWidth: '800px', margin: '0 auto', padding: '24px', backgroundColor: '#1a1a2e', borderRadius: '12px' },
   sectionTitle: { color: '#c8b97a', marginTop: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
