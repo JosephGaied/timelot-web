@@ -149,6 +149,10 @@ function Dashboard({ token, onLogout }) {
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState(''); // '', 'reauth', or 'error'
+  const [eventsMeta, setEventsMeta] = useState({ scope: null, calendars: 1, skipped: 0 });
+  const [otherCalendars, setOtherCalendars] = useState([]); // names the "include my other calendars" choice would add
+  const [askScope, setAskScope] = useState(false);          // show the one-question prompt
+  const [savingScope, setSavingScope] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -169,6 +173,7 @@ function Dashboard({ token, onLogout }) {
     try {
       const res = await axios.get(`${API}/calendar/events?days=7`, { headers });
       setEvents(res.data.events || []);
+      setEventsMeta({ scope: res.data.scope || null, calendars: res.data.calendars || 1, skipped: res.data.skipped || 0 });
     } catch (err) {
       if (err.response?.status === 401) { onLogout(); return; }
       setEvents([]);
@@ -177,11 +182,39 @@ function Dashboard({ token, onLogout }) {
     setEventsLoading(false);
   };
 
+  // Which calendars does the user want read? Ask once (only if they have other calendars),
+  // remember the answer, and let them change it any time.
+  const fetchCalendarPrefs = async () => {
+    try {
+      const [p, c] = await Promise.all([
+        axios.get(`${API}/calendar/preferences`, { headers }),
+        axios.get(`${API}/calendar/calendars`, { headers }),
+      ]);
+      const others = (c.data.calendars || []).filter(x => x.mine && !x.primary).map(x => x.name);
+      setOtherCalendars(others);
+      if (!p.data.scope && others.length > 0) setAskScope(true);
+    } catch (err) {
+      // non-fatal: events still load using the default (main calendar only)
+    }
+  };
+
+  const chooseScope = async (scope) => {
+    setSavingScope(true);
+    try {
+      await axios.put(`${API}/calendar/preferences`, { scope }, { headers });
+      setAskScope(false);
+      fetchEvents();
+    } catch (err) {
+      setMessage('Could not save your calendar choice. Please try again.');
+    }
+    setSavingScope(false);
+  };
+
   const checkCalendar = async () => {
     try {
       const res = await axios.get(`${API}/calendar/status`, { headers });
       setCalendarConnected(res.data.connected);
-      if (res.data.connected) fetchEvents();
+      if (res.data.connected) { fetchEvents(); fetchCalendarPrefs(); }
     } catch (err) {
       // non-fatal; leave as not connected
     }
@@ -300,7 +333,28 @@ function Dashboard({ token, onLogout }) {
               {eventsLoading ? 'Reading…' : '↻ Refresh'}
             </button>
           </h3>
-          <p style={styles.eventsNote}>Next 7 days from your primary Google Calendar. TimeLot only reads it here; nothing is saved or changed.</p>
+          <p style={styles.eventsNote}>
+            Next 7 days · Reading: {eventsMeta.scope === 'all_mine'
+              ? `main calendar + ${Math.max(eventsMeta.calendars - 1, 0)} other${eventsMeta.calendars - 1 === 1 ? '' : 's'}`
+              : 'main calendar only'}.
+            {eventsMeta.skipped > 0 && ` (${eventsMeta.skipped} calendar${eventsMeta.skipped === 1 ? '' : 's'} could not be read.)`}
+            {' '}TimeLot only reads your calendar; nothing is saved or changed.{' '}
+            {otherCalendars.length > 0 && !askScope &&
+              <button style={styles.linkBtn} onClick={() => setAskScope(true)}>Change</button>}
+          </p>
+          {askScope && (
+            <div style={styles.scopeBox}>
+              <p style={styles.scopeTitle}>One quick question</p>
+              <p style={styles.eventsNote}>Do you want TimeLot to read your main calendar only, or include your other calendars too?</p>
+              {otherCalendars.length > 0 &&
+                <p style={styles.eventsNote}>Other calendars it would include: <strong>{otherCalendars.join(', ')}</strong></p>}
+              <div style={styles.scopeRow}>
+                <button style={styles.scopeBtn} disabled={savingScope} onClick={() => chooseScope('primary')}>Main calendar only</button>
+                <button style={styles.scopeBtnPrimary} disabled={savingScope} onClick={() => chooseScope('all_mine')}>Include my other calendars</button>
+              </div>
+              <p style={{ ...styles.eventsNote, margin: 0, fontSize: '0.78rem' }}>You can change this any time.</p>
+            </div>
+          )}
           {eventsError === 'reauth' ? (
             <div>
               <p style={styles.eventsNote}>Google needs you to reconnect your calendar before TimeLot can read it.</p>
@@ -320,6 +374,7 @@ function Dashboard({ token, onLogout }) {
                   <div key={e.id + g.key} style={{ ...styles.eventRow, opacity: e.busy ? 1 : 0.55 }}>
                     <span style={styles.eventTime}>{e.timeText}</span>
                     <span style={styles.eventTitle}>{e.title}{e.busy ? '' : ' (free)'}</span>
+                    {e.calendar && eventsMeta.calendars > 1 && <span style={styles.calTag}>{e.calendar}</span>}
                   </div>
                 ))}
               </div>
@@ -434,6 +489,13 @@ const styles = {
   passwordWrap: { position: 'relative', display: 'block' },
   toggleBtn: { position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', padding: '4px 10px', backgroundColor: 'transparent', border: '1px solid #444', borderRadius: '6px', color: '#c8b97a', fontSize: '0.8rem', cursor: 'pointer' },
   overdue: { color: '#e07a7a', fontWeight: 'bold' },
+  linkBtn: { background: 'none', border: 'none', color: '#7a9bc8', cursor: 'pointer', fontSize: '0.85rem', padding: 0, textDecoration: 'underline' },
+  scopeBox: { margin: '4px 0 16px', padding: '16px', backgroundColor: '#0a0a0f', border: '1px solid #3d2f8f', borderRadius: '10px' },
+  scopeTitle: { color: '#c8b97a', margin: '0 0 6px', fontWeight: 'bold' },
+  scopeRow: { display: 'flex', gap: '12px', flexWrap: 'wrap', margin: '8px 0 10px' },
+  scopeBtn: { padding: '10px 16px', backgroundColor: 'transparent', border: '1px solid #444', borderRadius: '8px', color: '#f0ede6', cursor: 'pointer', fontSize: '0.95rem' },
+  scopeBtnPrimary: { padding: '10px 16px', backgroundColor: '#3d2f8f', border: 'none', borderRadius: '8px', color: '#f0ede6', cursor: 'pointer', fontSize: '0.95rem' },
+  calTag: { color: '#7a9bc8', fontSize: '0.75rem', border: '1px solid #2a3a5a', borderRadius: '10px', padding: '2px 8px', whiteSpace: 'nowrap' },
   addCard: { maxWidth: '800px', margin: '0 auto 24px', padding: '24px', backgroundColor: '#1a1a2e', borderRadius: '12px' },
   listCard: { maxWidth: '800px', margin: '0 auto', padding: '24px', backgroundColor: '#1a1a2e', borderRadius: '12px' },
   sectionTitle: { color: '#c8b97a', marginTop: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
