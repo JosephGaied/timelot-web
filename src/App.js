@@ -66,6 +66,19 @@ const dayKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.get
 const parseDateOnly = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const formatTime = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
+// The browser's local calendar date as 'YYYY-MM-DD' (sent to the API so "today" matches yours).
+const localToday = () => dayKey(new Date());
+
+// Wording for days until due. Negative means overdue (the API sends the true signed number).
+function dueLabel(a) {
+  const d = a.days_until_due !== undefined ? a.days_until_due : a.t;
+  if (d < 0) return `Overdue by ${-d} day${d === -1 ? '' : 's'}`;
+  if (d === 0) return 'Due today';
+  if (d === 1) return 'Due tomorrow';
+  return `Due in ${d} days`;
+}
+const isOverdue = (a) => (a.days_until_due !== undefined ? a.days_until_due : a.t) < 0;
+
 function dayHeading(key) {
   const [y, m, d] = key.split('-').map(Number);
   const date = new Date(y, m - 1, d);
@@ -142,7 +155,7 @@ function Dashboard({ token, onLogout }) {
   const fetchActivities = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/activities`, { headers });
+      const res = await axios.get(`${API}/activities?today=${localToday()}`, { headers });
       setActivities(res.data.activities);
     } catch (err) {
       if (err.response?.status === 401) onLogout();
@@ -208,7 +221,8 @@ function Dashboard({ token, onLogout }) {
         name, importance: parseInt(importance),
         flexibility: parseInt(flexibility),
         duration_hours: parseFloat(duration),
-        due_date: dueDate
+        due_date: dueDate,
+        start_date: localToday()
       }, { headers });
       setName(''); setDueDate(''); setImportance(2); setFlexibility(2); setDuration(1);
       setMessage('Activity added!');
@@ -249,7 +263,7 @@ function Dashboard({ token, onLogout }) {
 
   const importanceLabel = { 1: 'Low', 2: 'Medium', 3: 'High' };
   const flexibilityLabel = { 1: 'Very Flexible', 2: 'Flexible', 3: 'Preferred', 4: 'Fixed' };
-  const scoreColor = (score) => score >= 500 ? '#c8b97a' : score >= 100 ? '#7a9bc8' : '#666';
+  const scoreColor = (score) => score >= 750 ? '#c8b97a' : score >= 450 ? '#7a9bc8' : '#666';
 
   return (
     <div style={styles.container}>
@@ -370,7 +384,7 @@ function Dashboard({ token, onLogout }) {
                 <div style={styles.activityInfo}>
                   <p style={styles.activityName}>{a.name}</p>
                   <p style={styles.activityMeta}>
-                    {importanceLabel[a.importance]} · {flexibilityLabel[a.flexibility]} · {a.duration_hours}h · Due in {a.t} day{a.t !== 1 ? 's' : ''}
+                    {importanceLabel[a.importance]} · {flexibilityLabel[a.flexibility]} · {a.duration_hours}h · <span style={isOverdue(a) ? styles.overdue : undefined}>{dueLabel(a)}</span>
                   </p>
                 </div>
                 <div style={styles.actions}>
@@ -419,6 +433,7 @@ const styles = {
   dueHint: { color: '#888', fontSize: '0.8rem', margin: '0 0 4px', minHeight: '1.1em' },
   passwordWrap: { position: 'relative', display: 'block' },
   toggleBtn: { position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', padding: '4px 10px', backgroundColor: 'transparent', border: '1px solid #444', borderRadius: '6px', color: '#c8b97a', fontSize: '0.8rem', cursor: 'pointer' },
+  overdue: { color: '#e07a7a', fontWeight: 'bold' },
   addCard: { maxWidth: '800px', margin: '0 auto 24px', padding: '24px', backgroundColor: '#1a1a2e', borderRadius: '12px' },
   listCard: { maxWidth: '800px', margin: '0 auto', padding: '24px', backgroundColor: '#1a1a2e', borderRadius: '12px' },
   sectionTitle: { color: '#c8b97a', marginTop: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
